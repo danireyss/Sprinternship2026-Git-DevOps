@@ -1,0 +1,85 @@
+# Name of the workflow (this appears in the GitHub Actions tab)
+name: CI/CD - Test HTML and Deploy
+
+# When should this workflow run?
+on:
+  push:                # Run when code is pushed
+    branches:
+      - main           # Only run when pushing to the main branch
+
+# Permissions needed for deployment
+permissions:
+  contents: read       # Allows reading repository files
+  pages: write         # Allows deployment to GitHub Pages
+  id-token: write      # Required for secure deployment
+
+jobs:
+
+  # ---------------------
+  # CI JOB (Testing)
+  # ---------------------
+
+  test:                 # First job: runs tests (CI = Continuous Integration)
+
+    runs-on: ubuntu-latest   # Use a Linux virtual machine to run the steps
+
+    steps:
+
+      # Step 1: Download the repository code into the runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Check that index.html exists
+      # If it does not exist, stop the workflow with an error
+      - name: Check index.html exists
+        run: |
+          if [ ! -f index.html ]; then
+            echo "index.html not found!"
+            exit 1
+          fi
+
+      # Step 3: Install HTML validator tool (htmlhint)
+      # npm is used to install the tool globally
+      - name: Install HTML Validator
+        run: npm install -g htmlhint
+
+      # Step 4: Run HTML validation test
+      # If HTML has errors, this step fails
+      # If this fails, deployment will NOT happen
+      - name: Validate HTML
+        run: htmlhint index.html
+
+
+  # ---------------------
+  # CD JOB (Deployment)
+  # ---------------------
+
+  deploy:               # Second job: deploy site (CD = Continuous Deployment)
+
+    needs: test         # IMPORTANT:
+                        # This job runs ONLY if the test job succeeds
+
+    runs-on: ubuntu-latest   # Use another Linux virtual machine
+
+    steps:
+
+      # Step 1: Download repository files again
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Prepare GitHub Pages environment
+      # This sets up deployment configuration
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Step 3: Upload website files
+      # path: . means upload everything in the repository
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      # Step 4: Deploy the site to GitHub Pages
+      # After this step finishes, the site becomes live
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
