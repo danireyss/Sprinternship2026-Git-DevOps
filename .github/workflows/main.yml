@@ -1,0 +1,20 @@
+
+name: Check HTML Exists
+ 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+ 
+jobs:
+  check-html:
+    name: Verify index.html exists
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Run HTML check script
+        run: bash check_html.sh
